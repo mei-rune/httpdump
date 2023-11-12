@@ -4,12 +4,48 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
+	"os"
+	"path/filepath"
+	"strconv"
+	"sync/atomic"
 )
+
+var DefaultClient = http.DefaultClient
 
 type DebugProvider interface {
 	New() (io.WriteCloser, error)
 
 	NewBody(request *http.Request) (io.WriteCloser, error)
+}
+
+func Dir(dir string) DebugProvider {
+	return &DirDebugProvider{
+		dir: dir,
+	}
+}
+
+type DirDebugProvider struct {
+	dir string
+
+	id int64
+}
+
+func (ddp *DirDebugProvider) New() (io.WriteCloser, error) {
+	file := filepath.Join(ddp.dir, strconv.FormatInt(atomic.AddInt64(&ddp.id, 1), 10)+".log")
+	out, err := os.Create(file)
+	return out, err
+}
+
+func (ddp *DirDebugProvider) NewBody(request *http.Request) (io.WriteCloser, error) {
+	pa := request.URL.Path
+	file := filepath.Join(ddp.dir, pa+".json")
+	if err := os.MkdirAll(file, 0666); err != nil {
+		if !os.IsExist(err) {
+			return nil, err
+		}
+	}
+	out, err := os.Create(file)
+	return out, err
 }
 
 var dumpTo DebugProvider
@@ -19,7 +55,6 @@ func SetDebugProvider(ddp DebugProvider) {
 }
 
 func Do(client *http.Client, request *http.Request) (*http.Response, error) {
-
 	var w io.WriteCloser
 	var needClose = true
 	if dumpTo != nil {
@@ -50,6 +85,10 @@ func Do(client *http.Client, request *http.Request) (*http.Response, error) {
 				}
 			}
 		}
+	}
+
+	if client == nil {
+		client = DefaultClient
 	}
 
 	response, err := client.Do(request)
