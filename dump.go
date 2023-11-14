@@ -39,7 +39,7 @@ func (ddp *DirDebugProvider) New() (io.WriteCloser, error) {
 func (ddp *DirDebugProvider) NewBody(request *http.Request) (io.WriteCloser, error) {
 	pa := request.URL.Path
 	file := filepath.Join(ddp.dir, pa+".json")
-	if err := os.MkdirAll(file, 0666); err != nil {
+	if err := os.MkdirAll(filepath.Dir(file), 0666); err != nil {
 		if !os.IsExist(err) {
 			return nil, err
 		}
