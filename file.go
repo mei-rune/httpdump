@@ -104,6 +104,10 @@ func ReadDir(dir string) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ToHandler(data), nil
+}
+
+func ToHandler(data map[string][]ReqestResponse) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		responseList := data[r.URL.Path]
 		if len(responseList) == 0 {
@@ -138,7 +142,7 @@ func ReadDir(dir string) (http.Handler, error) {
 			fmt.Println(resp.Request.URL.Query())
 		}
 		http.Error(w, "404 url query isnot match", http.StatusNotFound)
-	}), nil
+	})
 }
 
 func queryEqual(a, b url.Values) bool {
