@@ -1,6 +1,7 @@
 package httpdump
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
@@ -110,7 +111,10 @@ func Do(client *http.Client, request *http.Request) (*http.Response, error) {
 				}
 			}
 			if response.Body != nil {
-				responseWriter, _ := dumpTo.NewBody(request)
+				responseWriter, err := dumpTo.NewBody(request)
+				if err != nil {
+					fmt.Println(err)
+				}
 
 				needClose = false
 				response.Body = &teeReader2{
