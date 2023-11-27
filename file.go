@@ -122,12 +122,25 @@ func ToHandler(data map[string][]ReqestResponse) http.Handler {
 			if queryEqual(values, resp.Request.URL.Query()) {
 				if r.Method == "POST" || r.Method == "PUT" {
 					requestBytes, _ := ioutil.ReadAll(r.Body)
-					if bodyEqual(requestBytes, resp.RequestBytes) {
-						w.WriteHeader(resp.Response.StatusCode)
-						io.Copy(w, bytes.NewReader(resp.ResponseBytes))
+					if !bodyEqual(requestBytes, resp.RequestBytes) {
+						http.Error(w, "request body isnot same for "+r.Method, http.StatusBadRequest)
 						return
 					}
 				}
+
+				for _, name := range []string {
+					"Content-Type",
+					"Server",
+					"X-Content-Type-Options",
+					"X-Frame-Options",
+					"X-Xss-Protection",
+				}{
+					ss, ok := resp.Response.Header[name]
+					if ok {
+						w.Header()[name] = ss
+					}
+				}
+
 				w.WriteHeader(resp.Response.StatusCode)
 				io.Copy(w, bytes.NewReader(resp.ResponseBytes))
 				return
